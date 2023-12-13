@@ -24,14 +24,15 @@ def view_all_cars(request):
     if request.method == 'GET':
         cars = Car.objects.all()
         serializer = CarSerializer(cars, many=True)
+        print(f"Serialized Data: {serializer.data}")
         return Response(serializer.data)
 
 
 #api endpoint for getting the details of a perticular car
 @api_view(['GET'])
-def view_car_details(request, pk):
+def view_car_details(request, car_pk):
         try:
-            details = Car.objects.get(pk=pk)
+            details = Car.objects.get(pk=car_pk)
         except details.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
