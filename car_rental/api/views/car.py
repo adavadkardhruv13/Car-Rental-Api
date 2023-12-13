@@ -31,7 +31,7 @@ def view_all_cars(request):
 @api_view(['GET'])
 def view_car_details(request, pk):
         try:
-            details = Car.objects.all()
+            details = Car.objects.get(pk=pk)
         except details.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
