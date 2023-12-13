@@ -36,7 +36,7 @@ def add_customer(request):
 
 #api endpoint for editing specific customer details
 @api_view(['PUT'])
-def _edit_details(request, cust_pk):
+def edit_details(request, cust_pk):
     try:
         customer = Customer.objects.get(pk=cust_pk)
     except Customer.DoesNotExist():
