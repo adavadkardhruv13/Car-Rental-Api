@@ -91,6 +91,7 @@ def edit_car_details(request, car_pk):
         serializer = CarSerializer(data = request.data)
         serializer.save()
         if serializer.is_valid():
+            serializer.save()
             return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
