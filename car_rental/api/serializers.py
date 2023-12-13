@@ -8,13 +8,13 @@ class CustomerSerializer(serializers.ModelSerializer):
 class CarSerializer(serializers.ModelSerializer):
      class Meta:
         model = Car
-        fields = ['id', 'vehical_number', 'model', "seating_capacity", 'rent_per_day']
+        fields = ['id', 'vehicle_number', 'model', "seating_capacity", 'rent_per_day']
 
 
 class AvailableCarSerializer(serializers.ModelSerializer):
     class Meta:
         model = Car
-        fields = ['id', 'vehical_number', 'model', "seating_capacity", 'rent_per_day','availability']
+        fields = ['id', 'vehicle_number', 'model', "seating_capacity", 'rent_per_day','availability']
 
 class ReservationSerializer(serializers.ModelSerializer):
     class Meta:
