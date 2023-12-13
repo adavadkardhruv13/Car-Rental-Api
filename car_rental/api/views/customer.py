@@ -21,7 +21,7 @@ def view_customer_details(request, cust_pk):
         except Customer.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         if request.method == 'GET':
-            serializer = CustomerSerializer(customer, many=True)
+            serializer = CustomerSerializer(customer)
             return Response(serializer.data)
 
 #endpoint for adding a new customer
@@ -50,12 +50,14 @@ def edit_details(request, cust_pk):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 #api endpoints for deleting a perticular customer
+@api_view(['DELETE'])
 def delete_customer(request, cust_pk):
     try:
         customer = Customer.objects.get(pk=cust_pk)
-    except Customer.DoesNotExist():
+    except Customer.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'DELETE':
         customer.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    return Response(status=status.HTTP_400_BAD_REQUEST)
