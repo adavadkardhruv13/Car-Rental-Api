@@ -7,7 +7,7 @@ from datetime import date
 
 #api endpoint for getting all the reservation
 @api_view(['GET'])
-def view_all_reservation(request):
+def all_reservation(request):
     if request.method == 'GET':
         reservation = Reservation.objects.all()
         serializer = ReservationSerializer(reservation, many=True)
@@ -20,10 +20,10 @@ def add_booking(request):
         serializer = ReservationSerializer(data=request.data)
 
         if serializer.is_valid():
-            issue_date = serializer.validate_data['issue_date']
-            return_date = serializer.validate_data['return_date']
+            issue_date = serializer.validated_data['issue_date']
+            return_date = serializer.validated_data['return_date']
 
-            car = serializer.validate_data['car']
+            car = serializer.validated_data['car']
             reservation = Reservation.objects.filter(car=car.id)
 
             current_date = date.today()
@@ -49,9 +49,9 @@ def edit_reservation(request, pk):
         serializer = ReservationSerializer(reservation, data= request.data)
 
         if serializer.is_valid():
-            issue_date = serializer.validate_data['issue_date']
-            return_date = serializer.validate_data['return_date']
-            car = serializer.validate_data['car']
+            issue_date = serializer.validated_data['issue_date']
+            return_date = serializer.validated_data['return_date']
+            car = serializer.validated_data['car']
             reservation = Reservation.objects.filter(car=car.id)
 
             current_date = date.today()

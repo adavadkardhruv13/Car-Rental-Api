@@ -30,9 +30,9 @@ def view_all_cars(request):
 
 #api endpoint for getting the details of a perticular car
 @api_view(['GET'])
-def view_car_details(request, car_pk):
+def car_details(request, pk):
         try:
-            details = Car.objects.get(pk=car_pk)
+            details = Car.objects.get(pk=pk)
         except details.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -43,26 +43,26 @@ def view_car_details(request, car_pk):
 #api endpoint for displaying specific car details with its active reservation details
 
 @api_view(['GET'])
-def view_car_details_active_booking(request, pk):
+def view_car_details_with_active_booking(request, pk):
     try:
         car = Car.objects.get(by=pk)
-    except car.DoesNotExist:
-        return Response(status= status.HTTP_404_NOT_FOUND)
+    except Car.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
         current_date = date.today()
-        CarBookingDetails = namedtuple('CarBookingDetails',('car', 'current_active_bookings'))
+        condition_1 = Q(issue_data__gte=current_date)
+        condition_2 = Q(return_data__gte=current_date)
 
-        condition_1 = Q(issue_data__gte = current_date)
-        condition_2 = Q(return_data__gte = current_date)
-
-        carBookingDetails = CarBookingDetails(
-            car = car,
-            current_active_bookings = Reservation.objects.all.filter(car).filter(condition_1 | condition_2)
+        carBookingDetails = namedtuple('CarBookingDetails', ('car', 'current_active_bookings'))
+        carBookingDetails = carBookingDetails(
+            car=car,
+            current_active_bookings=Reservation.objects.all().filter(car).filter(condition_1 | condition_2)
         )
 
-        serializer = CarDetailReservationSerializer()
-        return(serializer.data)
+        serializer = CarDetailReservationSerializer(carBookingDetails)
+        return Response(serializer.data)
+
 
 
 #api endpoint for adding a new car
@@ -80,27 +80,25 @@ def add_car(request):
 
 #api endpoint for editing a perticular car details
 @api_view(['PUT'])
-def edit_car_details(request, car_pk):
-
+def edit_car_details(request, pk):
     try:
-        car = Car.objects.get(by= car_pk)
-    except car.DoesNotExsit:
-        return  Response(status=status.HTTP_404_NOT_FOUND)
-
+        car = Car.objects.get(by=pk)
+    except Car.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'PUT':
-        serializer = CarSerializer(data = request.data)
-        serializer.save()
+        serializer = CarSerializer(car, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 #api endpoint for deleting a car
 @api_view(['DELETE'])
-def delete_car(request, car_pk):
+def delete_car(request, pk):
     try:
-        car = Car.objects.get(by=car_pk)
+        car = Car.objects.get(by=pk)
     except car.DoesNotExist:
         return Response(status = status.HTTP_404_NOT_FOUND)
 
@@ -116,38 +114,42 @@ And filter the cars based on various fields.'''
 @parser_classes([JSONParser])
 def view_all_cars_on_given_date(request):
     if request.method == 'GET':
+        # Fetch date from url if passed or else set default to today's date.
+        date_to_check = request.GET.get('date', str(date.today()))
+        date_to_check = datetime.strptime(date_to_check, '%Y-%m-%d').date()  # Convert date to datetime format.
 
-        current_date = date.today()
-
-        condition_1 = Q(issue_date__gte=current_date)
-        condition_2 = Q(return_date__gte=current_date)
-        reservation = Reservation.objects.filter(condition_1 | condition_2)
-        serializer = ReservationSerializer(reservation, many=True)
-
-        reservation_data = serializer.data
-
-        #list of car ids that are occupied on that date
-        occupied_car_id_list=[]
-        for i in range (len(reservation_data)):
-            occupied_car_id_list.append(reservation_data[i]['car'])
-        list_of_car_id = list(set(occupied_car_id_list))
-
-        #updating the avalibility of the above cars as False
-        for car_id in list_of_car_id:
-            Car.objects.get(id=car_id).update(availability=False)
-
-
-        #filtering the cars based on various fields.
-        cars = Car.objects.all()
-
+        # Fetch filters like model, capacity or availability status
+        # if passed any as GET request URL parameters
         model = request.GET.get('model')
-        seating_capacity = request.GET.get('seating_capacity')
+        capacity = request.GET.get('capacity')
         availability = request.GET.get('availability')
 
-        filter = {'model':model, 'seating_capacity':seating_capacity, "availability":availability}
+        # Filter all car reservations which falls in between date_to_check
+        condition_1 = Q(issue_date__gte=date_to_check)
+        condition_2 = Q(return_date__gte=date_to_check)
+        reservations = Reservation.objects.filter(condition_1 | condition_2)
+        serializer = ReservationSerializer(reservations, many=True)
+        reservation_data = serializer.data
 
-        for key,value in filter.items():
+        # Get list of car ids which are reserved on the given date.
+        occupied_car_id_lists = []
+        for i in range(len(reservation_data)):
+            occupied_car_id_lists.append(reservation_data[i]['car'])
+        list_of_car_id = list(set(occupied_car_id_lists))
+
+        # Setting availability of all car to True
+        Car.objects.all().update(availability=True)
+
+        # Setting availability of all reserved car to False
+        for car_id in list_of_car_id:
+            Car.objects.filter(id=car_id).update(availability=False)
+
+        # Querying and filtering the cars based on various fields.
+        cars = Car.objects.all()
+        filters = {'model': model, 'seating_capacity': capacity, 'availability': availability}
+        for key, value in filters.items():
             if value is not None:
-                car = cars.filter({key.value})
-                serializer = AvailableCarSerializer(car, many=True)
-                return(serializer.data)
+                cars = cars.filter(**{key: value})
+        car_serializer = AvailableCarSerializer(cars, many=True)
+
+        return Response(car_serializer.data)
